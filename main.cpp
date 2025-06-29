@@ -1,4 +1,4 @@
-// RISC-V Assembler + Simulator Project - All Encodings Implemented in main.cpp
+// RISC-V Assembler + Simulator Project - All Encodings Implemented in main.cpp (ecall/ebreak removed)
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -10,13 +10,13 @@
 using namespace std;
 
 // === Utility Functions ===
-string trim(const string& s) {
+string trim(const string &s) {
     size_t start = s.find_first_not_of(" \t\n\r");
     size_t end = s.find_last_not_of(" \t\n\r");
     return (start == string::npos) ? "" : s.substr(start, end - start + 1);
 }
 
-vector<string> split(const string& s, char delimiter) {
+vector<string> split(const string &s, char delimiter) {
     vector<string> tokens;
     string token;
     istringstream ss(s);
@@ -30,9 +30,9 @@ vector<string> split(const string& s, char delimiter) {
 class SymbolTable {
     unordered_map<string, uint32_t> table;
 public:
-    void addLabel(const string& label, uint32_t address) { table[label] = address; }
-    bool hasLabel(const string& label) const { return table.find(label) != table.end(); }
-    uint32_t getAddress(const string& label) const {
+    void addLabel(const string &label, uint32_t address) { table[label] = address; }
+    bool hasLabel(const string &label) const { return table.find(label) != table.end(); }
+    uint32_t getAddress(const string &label) const {
         auto it = table.find(label);
         return (it != table.end()) ? it->second : 0;
     }
@@ -49,7 +49,7 @@ unordered_map<string, uint8_t> regMap = {
 };
 
 // === Instruction Encoder ===
-uint32_t encodeInstruction(const vector<string>& tokens, uint32_t address, const SymbolTable& sym) {
+uint32_t encodeInstruction(const vector<string> &tokens, uint32_t address, const SymbolTable &sym) {
     string inst = tokens[0];
     uint32_t rd, rs1, rs2, imm, opcode, funct3, funct7;
 
@@ -61,19 +61,19 @@ uint32_t encodeInstruction(const vector<string>& tokens, uint32_t address, const
         rs2 = regMap[tokens[3]];
         opcode = 0b0110011;
 
-        if (inst == "add") { funct3 = 0b000; funct7 = 0b0000000; }
+        if (inst == "add")      { funct3 = 0b000; funct7 = 0b0000000; }
         else if (inst == "sub") { funct3 = 0b000; funct7 = 0b0100000; }
         else if (inst == "xor") { funct3 = 0b100; funct7 = 0b0000000; }
-        else if (inst == "or") { funct3 = 0b110; funct7 = 0b0000000; }
+        else if (inst == "or")  { funct3 = 0b110; funct7 = 0b0000000; }
         else if (inst == "and") { funct3 = 0b111; funct7 = 0b0000000; }
         else if (inst == "sll") { funct3 = 0b001; funct7 = 0b0000000; }
         else if (inst == "srl") { funct3 = 0b101; funct7 = 0b0000000; }
         else if (inst == "sra") { funct3 = 0b101; funct7 = 0b0100000; }
         else if (inst == "slt") { funct3 = 0b010; funct7 = 0b0000000; }
-        else if (inst == "sltu") { funct3 = 0b011; funct7 = 0b0000000; }
+        else if (inst == "sltu") {funct3 = 0b011; funct7 = 0b0000000; }
 
         return (funct7 << 25) | (rs2 << 20) | (rs1 << 15)
-            | (funct3 << 12) | (rd << 7) | opcode;
+             | (funct3 << 12) | (rd << 7) | opcode;
     }
 
     // Immediate type (I-type)
@@ -86,21 +86,21 @@ uint32_t encodeInstruction(const vector<string>& tokens, uint32_t address, const
         rs1 = regMap[tokens[2]];
         imm = stoi(tokens[3]);
 
-        if (inst == "addi") { opcode = 0b0010011; funct3 = 0b000; }
+        if (inst == "addi")     { opcode = 0b0010011; funct3 = 0b000; }
         else if (inst == "xori") { opcode = 0b0010011; funct3 = 0b100; }
-        else if (inst == "ori") { opcode = 0b0010011; funct3 = 0b110; }
+        else if (inst == "ori")  { opcode = 0b0010011; funct3 = 0b110; }
         else if (inst == "andi") { opcode = 0b0010011; funct3 = 0b111; }
         else if (inst == "slli") { opcode = 0b0010011; funct3 = 0b001; funct7 = 0b0000000; return (funct7 << 25) | ((imm & 0x1F) << 20) | (rs1 << 15) | (funct3 << 12) | (rd << 7) | opcode; }
         else if (inst == "srli") { opcode = 0b0010011; funct3 = 0b101; funct7 = 0b0000000; return (funct7 << 25) | ((imm & 0x1F) << 20) | (rs1 << 15) | (funct3 << 12) | (rd << 7) | opcode; }
         else if (inst == "srai") { opcode = 0b0010011; funct3 = 0b101; funct7 = 0b0100000; return (funct7 << 25) | ((imm & 0x1F) << 20) | (rs1 << 15) | (funct3 << 12) | (rd << 7) | opcode; }
-        else if (inst == "slti") { opcode = 0b0010011; funct3 = 0b010; }
+        else if (inst == "slti")  { opcode = 0b0010011; funct3 = 0b010; }
         else if (inst == "sltiu") { opcode = 0b0010011; funct3 = 0b011; }
-        else if (inst == "jalr") { opcode = 0b1100111; funct3 = 0b000; }
-        else if (inst == "lb") { opcode = 0b0000011; funct3 = 0b000; }
-        else if (inst == "lh") { opcode = 0b0000011; funct3 = 0b001; }
-        else if (inst == "lw") { opcode = 0b0000011; funct3 = 0b010; }
-        else if (inst == "lbu") { opcode = 0b0000011; funct3 = 0b100; }
-        else if (inst == "lhu") { opcode = 0b0000011; funct3 = 0b101; }
+        else if (inst == "jalr")  { opcode = 0b1100111; funct3 = 0b000; }
+        else if (inst == "lb")    { opcode = 0b0000011; funct3 = 0b000; }
+        else if (inst == "lh")    { opcode = 0b0000011; funct3 = 0b001; }
+        else if (inst == "lw")    { opcode = 0b0000011; funct3 = 0b010; }
+        else if (inst == "lbu")   { opcode = 0b0000011; funct3 = 0b100; }
+        else if (inst == "lhu")   { opcode = 0b0000011; funct3 = 0b101; }
 
         return ((imm & 0xFFF) << 20) | (rs1 << 15) | (funct3 << 12) | (rd << 7) | opcode;
     }
@@ -115,9 +115,9 @@ uint32_t encodeInstruction(const vector<string>& tokens, uint32_t address, const
         else if (inst == "sh") funct3 = 0b001;
         else if (inst == "sw") funct3 = 0b010;
         uint32_t imm_11_5 = (imm >> 5) & 0x7F;
-        uint32_t imm_4_0 = imm & 0x1F;
+        uint32_t imm_4_0  = imm & 0x1F;
         return (imm_11_5 << 25) | (rs2 << 20) | (rs1 << 15)
-            | (funct3 << 12) | (imm_4_0 << 7) | opcode;
+             | (funct3 << 12) | (imm_4_0 << 7) | opcode;
     }
 
     // Branch (B-type)
@@ -140,7 +140,7 @@ uint32_t encodeInstruction(const vector<string>& tokens, uint32_t address, const
         uint32_t imm11 = (imm >> 11) & 1;
 
         return (imm12 << 31) | (imm11 << 7) | (imm10_5 << 25) | (imm4_1 << 8)
-            | (rs2 << 20) | (rs1 << 15) | (funct3 << 12) | opcode;
+             | (rs2 << 20) | (rs1 << 15) | (funct3 << 12) | opcode;
     }
 
     // J-type (jal)
@@ -164,15 +164,5 @@ uint32_t encodeInstruction(const vector<string>& tokens, uint32_t address, const
         return (imm << 12) | (rd << 7) | opcode;
     }
 
-    // Environment (ecall, ebreak)
-    if (inst == "ecall") {
-        return 0b00000000000000000000000001110011;
-    }
-    if (inst == "ebreak") {
-        return 0b00000000000100000000000001110011;
-    }
-
     throw runtime_error("Unknown instruction: " + inst);
 }
-
-// === Simulator (بدون تغییر) و main() قبل باقی می‌ماند ===
