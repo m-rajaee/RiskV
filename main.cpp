@@ -15,7 +15,6 @@ vector<string> split(const string& s, char delimiter) {
     }
     return tokens;
 }
-///////
 unordered_map<string, uint8_t> regMap = {
     {"x0", 0}, {"x1", 1}, {"x2", 2}, {"x3", 3}, {"x4", 4},
     {"x5", 5}, {"x6", 6}, {"x7", 7}, {"x8", 8}, {"x9", 9},
@@ -26,5 +25,46 @@ unordered_map<string, uint8_t> regMap = {
     {"x30", 30}, {"x31", 31}
 };
 int main() {
-
+    SymbolTable sym;
+    vector<string> instructions;
+    uint32_t address = 0x1000;
+    ifstream infile("input.asm");
+    string line;
+    while (getline(infile, line)) {
+        line = trim(line);
+        if (line.empty() || line[0] == '#') 
+            continue;
+        if (line.find(':') != string::npos) {
+            string label = trim(line.substr(0, line.find(':')));
+            sym.addLabel(label, address);
+            line = trim(line.substr(line.find(':') + 1));
+            if (line.empty()) 
+                continue;
+        }
+        else if (line[0] == '.') {
+            vector<string> tokens = split(line, ' ');
+            string directive = tokens[0];
+            if (directive == ".org") {
+                address = stoi(tokens[1], nullptr, 0);
+                continue;
+            }
+            else if (directive == ".word") {
+                //put a 32 bit value to memory
+            }
+            else if (directive == ".half") {
+                //put a 16 bit value to memory
+            }
+            else if (directive == ".byte") {
+                //put a 8 bit value to memory
+            }
+            else if (directive == ".align") {
+                int n = stoi(tokens[1]);
+                uint32_t alignTo = 1 << n;
+                address = (address + alignTo - 1) & ~(alignTo - 1);
+                continue;
+            }
+        }
+        instructions.push_back(line);
+        address += 4;
+    }
 }
