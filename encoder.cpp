@@ -1,7 +1,4 @@
 #include "encoder.h"
-SymbolTable::SymbolTable() {
-
-}
 void SymbolTable::addLabel(const string& label, uint32_t address){ table[label] = address; }
 bool SymbolTable::hasLabel(const string& label){ return table.find(label) != table.end(); }
 uint32_t SymbolTable::getAddress(const string& label) const {

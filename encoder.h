@@ -11,12 +11,12 @@
 #include <stdexcept>
 using namespace std;
 class SymbolTable {
-    unordered_map<string, uint32_t> table;
 public:
+    SymbolTable() = default;
+    unordered_map<string, uint32_t> table;
     void addLabel(const string& label, uint32_t address);
     bool hasLabel(const string& label);
     uint32_t getAddress(const string& label) const;
-    SymbolTable();
 };
 uint32_t encodeInstruction(const vector<string>& tokens, uint32_t address, const SymbolTable& sym, unordered_map<string, uint8_t> regMap);
 
