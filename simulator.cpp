@@ -495,24 +495,15 @@ void Simulator::J_type(uint32_t instr)
 
     // Cycle 4: A ← PC  (PC is already PC_old + 4 after fetch)
     clk++;
-    A.write(PC.read());
-    B.write(imm);
+    if(rd != 0)
+        regfile[rd].write(PC.read());
     print_state();
 
     // Cycle 5: ALUOut ← A + imm  (compute jump target)
     clk++;
-    ALUOut.write(A.read() + B.read());
+    PC.write(PC.read() + imm);
     print_state();
 
-    // Cycle 6: RegFile[rd] ← A  (write return address = PC_old + 4)
-    clk++;
-    if (rd != 0) regfile[rd].write(A.read());
-    print_state();
-
-    // Cycle 7: PC ← ALUOut  (perform the jump)
-    clk++;
-    PC.write(ALUOut.read());
-    print_state();
     reset_clk();
 }
 
