@@ -1,10 +1,4 @@
 ﻿#include "simulator.h"
-#include <fstream>
-#include <stdexcept>
-#include <iomanip>
-#include <iostream>
-using namespace std;
-
 Register::Register() : value(0) {}
 
 void Register::write(uint32_t _v)
@@ -37,48 +31,45 @@ Simulator::Simulator()
         m = 0;
 }
 
-void Simulator::load_program(const std::string& path)
+void Simulator::load_program(const string& path)
 {
-    std::ifstream infile(path);
+    ifstream infile(path);
     if (!infile)
-        throw std::runtime_error("Cannot open file: " + path);
-
-    std::string line;
+        throw runtime_error("Cannot open file: " + path);
+    string line;
     uint32_t addr = PROGRAM_START / 4;
-
-    while (std::getline(infile, line))
+    while (getline(infile, line))
     {
         if (line.empty())
             continue;
         if (addr >= MEM_SIZE)
-            throw std::runtime_error("Program is too large for memory");
-
-        mem[addr++] = std::stoul(line, nullptr, 16);
+            throw runtime_error("Program is too large for memory");
+        mem[addr++] = stoul(line, nullptr,0);
     }
 }
 
 void Simulator::print_state()
 {
-    cout << "clock: " << clk << '\n';
+    cout << "clock: " << clk << endl;
     for (int i = 0; i < 32; i += 4)
     {
-        cout << std::hex << std::setw(3) << std::setfill(' ') << reg_names[i] << ": "
-            << std::setw(8) << std::setfill('0') << regfile[i].read() << "  "
-            << std::setw(3) << reg_names[i + 1] << ": "
-            << std::setw(8) << regfile[i + 1].read() << "  "
-            << std::setw(3) << reg_names[i + 2] << ": "
-            << std::setw(8) << regfile[i + 2].read() << "  "
-            << std::setw(3) << reg_names[i + 3] << ": "
-            << std::setw(8) << regfile[i + 3].read() << std::endl;
+        cout << hex << setw(3) << setfill(' ') << reg_names[i] << ": "
+            << setw(8) << setfill('0') << regfile[i].read() << "  "
+            << setw(3) << reg_names[i + 1] << ": "
+            << setw(8) << regfile[i + 1].read() << "  "
+            << setw(3) << reg_names[i + 2] << ": "
+            << setw(8) << regfile[i + 2].read() << "  "
+            << setw(3) << reg_names[i + 3] << ": "
+            << setw(8) << regfile[i + 3].read() << endl;
     }
-    cout << " PC: " << std::setw(8) << PC.read()
-        << "  MAR: " << std::setw(8) << MAR.read()
-        << "  MDR: " << std::setw(8) << MDR.read()
-        << "  IR: " << std::setw(8) << IR.read()
-        << "  A: " << std::setw(8) << A.read()
-        << "  B: " << std::setw(8) << B.read()
-        << "  ALUOut: " << std::setw(8) << ALUOut.read()
-        << std::dec << std::endl;
+    cout << " PC: " << setw(8) << PC.read()
+        << "  MAR: " << setw(8) << MAR.read()
+        << "  MDR: " << setw(8) << MDR.read()
+        << "  IR: " << setw(8) << IR.read()
+        << "  A: " << setw(8) << A.read()
+        << "  B: " << setw(8) << B.read()
+        << "  ALUOut: " << setw(8) << ALUOut.read()
+        << dec << endl;
 }
 
 void Simulator::start()
@@ -220,7 +211,6 @@ void Simulator::R_type(uint32_t instr)
     }
     ALUOut.write(val);
     print_state();
-
     // Cycle 6: Write result into rd (if rd != 0)
     clk++;
     if (rd != 0)
@@ -271,12 +261,10 @@ void Simulator::I_type(uint32_t instr, uint32_t opcode)
         {
             uint32_t addrw = (MAR.read() & ~0x3) / 4;
             uint32_t dataw = (addrw < MEM_SIZE) ? mem[addrw] : 0;
-
             uint32_t addrh = (MAR.read() & ~0x1) / 4;
             uint32_t datah = (addrh < MEM_SIZE) ? mem[addrh] : 0;
             int offseth = (MAR.read() & 0x2) ? 16 : 0;
             int16_t valh = (datah >> offseth) & 0xFFFF;
-
             switch (funct3)
             {
             case 0x1: // lh
@@ -311,7 +299,6 @@ void Simulator::I_type(uint32_t instr, uint32_t opcode)
         print_state();
         break;
     }
-
     reset_clk();
 }
 
@@ -322,7 +309,6 @@ void Simulator::S_type(uint32_t instr)
     int rs2 = (instr >> 20) & 0x1F;
     int32_t imm = ((instr >> 25) << 5) | ((instr >> 7) & 0x1F);
     imm = (imm << 20) >> 20;  // Sign-extend immediate
-
     // Cycle 4: Read base register into A
     clk++;
     A.write(regfile[rs1].read());
@@ -342,7 +328,6 @@ void Simulator::S_type(uint32_t instr)
     clk++;
     MDR.write(regfile[rs2].read());
     print_state();
-
     // Cycle 8: Write data from MDR into memory (sw or sh)
     clk++;
     {
@@ -516,16 +501,41 @@ void Simulator::J_type(uint32_t instr)
     clk++;
     PC.write(ALUOut.read());
     print_state();
-
     reset_clk();
 }
 
+void Simulator::writeWord(uint32_t input, uint32_t address) {
+        //if (address % 4 != 0) {
+        //    cerr << "Error: Unaligned word write to address 0x" << hex << address << endl;
+        //    return;
+        //}
+        mem[address / 4] = input;
+}
 
-
-int main()
-{
-    Simulator s;
-    s.load_program("C:\\Users\\mjad3\\Downloads\\arch_project\\test.txt");
-    s.start();
-    return 0;
+void Simulator::writeHalf(uint16_t input, uint32_t address) {
+    uint32_t wordAddress = address / 4;
+    uint32_t offset = address % 4;
+    if (offset == 0) {  //low half 
+        uint32_t word = mem[wordAddress];
+        word &= 0xFFFF0000;
+        word |= input;
+        mem[wordAddress] = word;
+    }
+    else if (offset == 2) {      //high half
+        uint32_t word = mem[wordAddress];
+        word &= 0x0000FFFF;
+        word |= (input << 16);
+        mem[wordAddress] = word;
+    }
+    else {
+        cerr << "Error: .half must be aligned to 2 bytes (offset 0 or 2)" << endl;
+    }
+}
+void Simulator::writeByte(uint8_t input, uint32_t address) {
+    uint32_t wordAddress = address / 4;
+    uint32_t byteOffset = address % 4;
+    uint32_t oldWord = mem[wordAddress];
+    oldWord &= ~(0xFF << (byteOffset * 8));        // clear that byte
+    oldWord |= (input << (byteOffset * 8));        // set byte to new value
+    mem[wordAddress] = oldWord;
 }

@@ -5,13 +5,12 @@ uint32_t SymbolTable::getAddress(const string& label) const {
     auto it = table.find(label);
     return (it != table.end()) ? it->second : 0;
 }
-uint32_t encodeInstruction(const vector<string>& tokens, uint32_t address, const SymbolTable& sym, unordered_map<string, uint8_t> regMap) {
+uint32_t encodeInstruction(const vector<string>& tokens, uint32_t address, const SymbolTable& sym, unordered_map<string, uint32_t> regMap) {
     string inst = tokens[0];
     uint32_t rd, rs1, rs2, imm, opcode, funct3, funct7;
 
     if (inst == "add" || inst == "sub" || inst == "xor" || inst == "or" || inst == "and" ||
         inst == "sll" || inst == "srl" || inst == "sra" || inst == "slt" || inst == "sltu") {
-
         rd = regMap[tokens[1]];
         rs1 = regMap[tokens[2]];
         rs2 = regMap[tokens[3]];
@@ -37,11 +36,9 @@ uint32_t encodeInstruction(const vector<string>& tokens, uint32_t address, const
         inst == "slli" || inst == "srli" || inst == "srai" ||
         inst == "slti" || inst == "sltiu" || inst == "jalr" ||
         inst == "lb" || inst == "lh" || inst == "lw" || inst == "lbu" || inst == "lhu") {
-
         rd = regMap[tokens[1]];
         rs1 = regMap[tokens[2]];
-        imm = stoi(tokens[3]);
-
+        imm = stoul(tokens[3]);
         if (inst == "addi") { opcode = 0b0010011; funct3 = 0b000; }
         else if (inst == "xori") { opcode = 0b0010011; funct3 = 0b100; }
         else if (inst == "ori") { opcode = 0b0010011; funct3 = 0b110; }
@@ -57,7 +54,6 @@ uint32_t encodeInstruction(const vector<string>& tokens, uint32_t address, const
         else if (inst == "lw") { opcode = 0b0000011; funct3 = 0b010; }
         else if (inst == "lbu") { opcode = 0b0000011; funct3 = 0b100; }
         else if (inst == "lhu") { opcode = 0b0000011; funct3 = 0b101; }
-
         return ((imm & 0xFFF) << 20) | (rs1 << 15) | (funct3 << 12) | (rd << 7) | opcode;
     }
 
@@ -65,7 +61,7 @@ uint32_t encodeInstruction(const vector<string>& tokens, uint32_t address, const
     if (inst == "sb" || inst == "sh" || inst == "sw") {
         rs2 = regMap[tokens[1]];
         rs1 = regMap[tokens[2]];
-        imm = stoi(tokens[3]);
+        imm = stoul(tokens[3]);
         opcode = 0b0100011;
         if (inst == "sb") funct3 = 0b000;
         else if (inst == "sh") funct3 = 0b001;
@@ -88,7 +84,6 @@ uint32_t encodeInstruction(const vector<string>& tokens, uint32_t address, const
         else if (inst == "bge") funct3 = 0b101;
         else if (inst == "bltu") funct3 = 0b110;
         else if (inst == "bgeu") funct3 = 0b111;
-
         uint32_t imm = offset;
         uint32_t imm12 = (imm >> 12) & 1;
         uint32_t imm10_5 = (imm >> 5) & 0x3F;
@@ -115,7 +110,7 @@ uint32_t encodeInstruction(const vector<string>& tokens, uint32_t address, const
     // U-type (lui, auipc)
     if (inst == "lui" || inst == "auipc") {
         rd = regMap[tokens[1]];
-        imm = stoi(tokens[2]);
+        imm = stoul(tokens[2]);
         opcode = (inst == "lui") ? 0b0110111 : 0b0010111;
         return (imm << 12) | (rd << 7) | opcode;
     }
