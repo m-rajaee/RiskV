@@ -44,7 +44,7 @@ void Simulator::load_program(const string& path)
             continue;
         if (addr >= MEM_SIZE)
             throw runtime_error("Program is too large for memory");
-        mem[addr++] = stoul(line, nullptr,0);
+        mem[addr++] = stoul(line, nullptr, 16);
     }
 }
 
@@ -232,10 +232,11 @@ void Simulator::I_type(uint32_t instr, uint32_t opcode)
     case 0x13: // addi (I-type arithmetic)
         clk++;
         A.write(regfile[rs1].read());
+        B.write(imm);
         print_state();
 
         clk++;
-        ALUOut.write(A.read() + imm);
+        ALUOut.write(A.read() + B.read());
         print_state();
 
         clk++;
@@ -247,10 +248,11 @@ void Simulator::I_type(uint32_t instr, uint32_t opcode)
     case 0x03: // Loads: lh, lw
         clk++;
         A.write(regfile[rs1].read());
+        B.write(imm);
         print_state();
 
         clk++;
-        ALUOut.write(A.read() + imm);
+        ALUOut.write(A.read() + B.read());
         print_state();
 
         clk++;
@@ -286,15 +288,17 @@ void Simulator::I_type(uint32_t instr, uint32_t opcode)
     case 0x67: // jalr
         clk++;
         A.write(regfile[rs1].read());
+        B.write(imm);
         print_state();
 
         clk++;
-        ALUOut.write(A.read() + imm);
+        ALUOut.write(A.read() + B.read());
         print_state();
 
         clk++;
         if (rd != 0)
             regfile[rd].write(PC.read());
+    
         PC.write(ALUOut.read() & ~1u);
         print_state();
         break;
@@ -312,11 +316,12 @@ void Simulator::S_type(uint32_t instr)
     // Cycle 4: Read base register into A
     clk++;
     A.write(regfile[rs1].read());
+    B.write(imm);
     print_state();
 
     // Cycle 5: Compute effective address ALUOut ← A + imm
     clk++;
-    ALUOut.write(A.read() + imm);
+    ALUOut.write(A.read() + B.read());
     print_state();
 
     // Cycle 6: Set MAR to the effective address
@@ -369,12 +374,17 @@ void Simulator::U_type(uint32_t instr, uint32_t opcode)
 
     if (opcode == 0x37)  // LUI
     {
-        // Cycle 4: ALUOut ← imm << 0   (already shifted in mask)
+        //Cycle 4: B <- imm
         clk++;
-        ALUOut.write(imm);
+        B.write(imm);
         print_state();
 
-        // Cycle 5: RegFile[rd] ← ALUOut
+        // Cycle 5: ALUOut ← imm << 0   (already shifted in mask)
+        clk++;
+        ALUOut.write(B.read());
+        print_state();
+
+        // Cycle 6: RegFile[rd] ← ALUOut
         clk++;
         if (rd != 0) regfile[rd].write(ALUOut.read());
         print_state();
@@ -384,11 +394,12 @@ void Simulator::U_type(uint32_t instr, uint32_t opcode)
         // Cycle 4: A ← PC
         clk++;
         A.write(PC.read());
+        B.write(imm);
         print_state();
 
         // Cycle 5: ALUOut ← A + imm
         clk++;
-        ALUOut.write(A.read() + imm);
+        ALUOut.write(A.read() + B.read());
         print_state();
 
         // Cycle 6: RegFile[rd] ← ALUOut
@@ -485,11 +496,12 @@ void Simulator::J_type(uint32_t instr)
     // Cycle 4: A ← PC  (PC is already PC_old + 4 after fetch)
     clk++;
     A.write(PC.read());
+    B.write(imm);
     print_state();
 
     // Cycle 5: ALUOut ← A + imm  (compute jump target)
     clk++;
-    ALUOut.write(A.read() + imm);
+    ALUOut.write(A.read() + B.read());
     print_state();
 
     // Cycle 6: RegFile[rd] ← A  (write return address = PC_old + 4)
@@ -539,3 +551,4 @@ void Simulator::writeByte(uint8_t input, uint32_t address) {
     oldWord |= (input << (byteOffset * 8));        // set byte to new value
     mem[wordAddress] = oldWord;
 }
+
