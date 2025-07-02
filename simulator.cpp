@@ -597,9 +597,3 @@ void Simulator::writeByte(uint8_t input, uint32_t address) {
     oldWord |= (input << (byteOffset * 8));        // set byte to new value
     mem[wordAddress] = oldWord;
 }
-
-{
-    Simulator s;
-    s.load_program("C:\\Users\\mjad3\\Downloads\\arch_project\\test.txt");
-    s.start();
-}
