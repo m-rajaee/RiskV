@@ -1,6 +1,5 @@
-﻿#include "encoder.h"
+#include "encoder.h"
 #include "simulator.h"
-#include <iomanip>
 using namespace std;
 
 // === Utility Functions ===
@@ -91,7 +90,6 @@ int main() {
         string inputline = remove_commas(trim(instr));
         vector<string> tokens = split(inputline, ' ');
         uint32_t code = encodeInstruction(tokens, address, symbolTable, regMap);
-        cout << hex << code << endl;
         outfile << hex << setw(8) << setfill('0') << code << endl;
         simulator.writeWord(code, address);
         address += 4;
