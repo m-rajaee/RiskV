@@ -56,41 +56,41 @@ void Simulator::choose_clk_type()
         cout << "Choose clk type: A(Auto), M(Manual): ";
         getline(cin, input);
 
-        if (input.size() == 1) 
+        if (input.size() == 1)
         {
             clk_type = toupper(static_cast<unsigned char>(input[0]));
-            if (clk_type == 'A' || clk_type == 'M') 
+            if (clk_type == 'A' || clk_type == 'M')
                 break;
         }
         cout << "Invalid input. Please enter 'A' or 'M'.";
     }
 
-    if(clk_type == 'A')
+    if (clk_type == 'A')
     {
         cout << "Choose the speed (Hz) (0 for max): ";
         cin >> clk_speed;
-        if(clk_speed != 0)
+        if (clk_speed != 0)
             delay = 1'000'000.0 / clk_speed;
     }
 }
 
 void Simulator::pause()
 {
-    if(clk_speed == 0)
-        {
-            return;
-        }
-        else
-        {
-            std::this_thread::sleep_for(std::chrono::microseconds(static_cast<int>(delay)));
-        }
+    if (clk_speed == 0)
+    {
+        return;
+    }
+    else
+    {
+        std::this_thread::sleep_for(std::chrono::microseconds(static_cast<int>(delay)));
+    }
 }
 
 void Simulator::wait_for_user()
 {
     char c;
     cout << "Press Enter to continue...\n";
-    getch();
+    _getch();
 }
 
 void Simulator::print_state()
@@ -116,7 +116,7 @@ void Simulator::print_state()
         << "  ALUOut: " << setw(8) << ALUOut.read()
         << dec << endl;
 
-    if(clk_type == 'A')
+    if (clk_type == 'A')
         pause();
     else
         wait_for_user();
@@ -516,11 +516,14 @@ void Simulator::B_type(uint32_t instr)
     // Note: PC currently points to next instruction (PC = old PC + 4 from fetch).
     // Therefore, branch target = (PC - 4) + immediate.
     int32_t branchTarget = (PC.read() - 4) + imm;
-   
-    // Cycle 5: If branch condition met, update PC with branch target.
+    ALUOut.write(branchTarget); // For debug tracking
+    print_state();
+
+    // Cycle 6: If branch condition met, update PC with branch target.
+    clk++;
     if (takeBranch)
     {
-        PC.write(branchTarget);
+        PC.write(ALUOut.read());
     }
     print_state();
 

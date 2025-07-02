@@ -16,7 +16,24 @@ uint32_t SymbolTable::getAddress(const string& label)const{
 uint32_t encodeInstruction(const vector<string>& tokens, uint32_t address, const SymbolTable& sym, unordered_map<string, uint32_t> regMap) {
     string inst = tokens[0];
     uint32_t rd, rs1, rs2, imm, opcode, funct3, funct7;
-
+    // ───────────── Pseudo - Instructions ─────────────
+    // "li" Implemented in main function
+    if (inst == "nop") {
+        vector<string> newtokens = { "addi","x0","x0","0" };
+        return encodeInstruction(newtokens, address, sym, regMap);
+    }
+    if (inst == "mv") {
+        vector<string> newtokens = { "addi",tokens[1],tokens[2],"0" };
+        return encodeInstruction(newtokens, address, sym, regMap);
+    }
+    if (inst == "not") {
+        vector<string> newtokens = { "xori",tokens[1],tokens[2],"-1" };
+        return encodeInstruction(newtokens, address, sym, regMap);
+    }
+    if (inst == "neg") {
+        vector<string> newtokens = { "sub",tokens[1],"x0",tokens[2]};
+        return encodeInstruction(newtokens, address, sym, regMap);
+    }
     // ───────────── R-TYPE ─────────────
     if (inst == "add" || inst == "sub" || inst == "xor" || inst == "or" || inst == "and" ||
         inst == "sll" || inst == "srl" || inst == "sra" || inst == "slt" || inst == "sltu" ||
@@ -27,7 +44,6 @@ uint32_t encodeInstruction(const vector<string>& tokens, uint32_t address, const
         rs1 = regMap[tokens[2]];
         rs2 = regMap[tokens[3]];
         opcode = 0b0110011;
-
         if (inst == "add") { funct3 = 0b000; funct7 = 0b0000000; }
         else if (inst == "sub") { funct3 = 0b000; funct7 = 0b0100000; }
         else if (inst == "xor") { funct3 = 0b100; funct7 = 0b0000000; }

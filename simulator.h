@@ -64,4 +64,3 @@ public:
     void writeHalf(uint16_t input, uint32_t address);
     void writeByte(uint8_t input, uint32_t address);
 };
-

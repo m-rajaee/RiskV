@@ -51,13 +51,15 @@ int main() {
     // ─────[ Pass 1: Label Parsing and Directives ]─────
     while (getline(infile, line)) {
         line = trim(line);
-        if (line.empty() || line[0] == '#') continue;
+        if (line.empty() || line[0] == '#') 
+            continue;
 
         if (line.find(':') != string::npos) {
             string label = trim(line.substr(0, line.find(':')));
             symbolTable.addLabel(label, address);
             line = trim(line.substr(line.find(':') + 1));
-            if (line.empty()) continue;
+            if (line.empty()) 
+                continue;
         }
 
         if (line[0] == '.') {
@@ -97,16 +99,31 @@ int main() {
     for (const string& instr : instructions) {
         string inputline = remove_commas(trim(instr));
         vector<string> tokens = split(inputline, ' ');
+        if (tokens[0] == "li") {
+            uint32_t imm = stoul(tokens[2], nullptr, 0);
+            if (imm <= 0xFFF) {
+                vector<string> newtokens = { "addi",tokens[1],"x0",tokens[2]};
+                uint32_t code = encodeInstruction(newtokens, address, symbolTable, regMap);
+                outfile << hex << setw(8) << setfill('0') << code << endl;
+                continue;
+            }
+            uint32_t upper = imm >> 12;
+            uint32_t lower = imm & 0xFFF;
+            vector<string> newtokens = { "lui",tokens[1],to_string(upper)};
+            uint32_t code = encodeInstruction(newtokens, address, symbolTable, regMap);
+            outfile << hex << setw(8) << setfill('0') << code << endl;
+            vector<string> newtokens2 = { "addi",tokens[1],tokens[1],to_string(lower)};
+            code = encodeInstruction(newtokens2, address, symbolTable, regMap);
+            outfile << hex << setw(8) << setfill('0') << code << endl;
+            continue;
+        }
         if (tokens.size() == 3 && tokens[2].find('(') != string::npos) {
             pair<string, string> temp = parseMemoryOperand(tokens[2]);
             tokens.pop_back();
             tokens.push_back(temp.second);
             tokens.push_back(temp.first);
         }
-        for (string t : tokens)
-            cout << t << ' ';
-        cout << endl;
-        uint32_t code = encodeInstruction(tokens, address, symbolTable, regMap);
+;       uint32_t code = encodeInstruction(tokens, address, symbolTable, regMap);
         outfile << hex << setw(8) << setfill('0') << code << endl;
         simulator.writeWord(code, address);
         address += 4;
