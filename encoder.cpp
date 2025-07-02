@@ -74,11 +74,9 @@ uint32_t encodeInstruction(const vector<string>& tokens, uint32_t address, const
         inst == "slli" || inst == "srli" || inst == "srai" ||
         inst == "slti" || inst == "sltiu" || inst == "jalr" ||
         inst == "lb" || inst == "lh" || inst == "lw" || inst == "lbu" || inst == "lhu") {
-
         rd = regMap[tokens[1]];
         rs1 = regMap[tokens[2]];
-        imm = stoul(tokens[3], nullptr, 0);
-
+        imm = stoul(tokens[3], nullptr,0);
         if (inst == "addi") { opcode = 0b0010011; funct3 = 0b000; }
         else if (inst == "xori") { opcode = 0b0010011; funct3 = 0b100; }
         else if (inst == "ori") { opcode = 0b0010011; funct3 = 0b110; }
