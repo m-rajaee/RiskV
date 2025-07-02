@@ -206,10 +206,10 @@ void Simulator::reset_clk()
 
 void Simulator::R_type(uint32_t instr)
 {
-    int rd = (instr >> 7) & 0x1F;
+    int rd     = (instr >> 7)  & 0x1F;
     int funct3 = (instr >> 12) & 0x7;
-    int rs1 = (instr >> 15) & 0x1F;
-    int rs2 = (instr >> 20) & 0x1F;
+    int rs1    = (instr >> 15) & 0x1F;
+    int rs2    = (instr >> 20) & 0x1F;
     int funct7 = (instr >> 25) & 0x7F;
 
     // Cycle 4: Read registers into A and B
@@ -218,57 +218,116 @@ void Simulator::R_type(uint32_t instr)
     B.write(regfile[rs2].read());
     print_state();
 
-    // Cycle 5: Compute ALU result (R-type operation)
+    // Cycle 5: Compute ALU result
     clk++;
-    int32_t val = 0;
+    int32_t   opA = A.read();
+    int32_t   opB = B.read();
+    int32_t   val = 0;
+
     switch (funct3)
     {
-    case 0x0:
-        if (funct7 == 0x00) val = A.read() + B.read();
-        else if (funct7 == 0x20) val = A.read() - B.read();
-        else if (funct7 == 0x01) val = int32_t(A.read()) * int32_t(B.read());
-        break;
-    case 0x1:
-        if (funct7 == 0x00) val = A.read() << (B.read() & 0x1F);
-        else if (funct7 == 0x01)
+      // add, sub, mul
+      case 0x0:
+        if      (funct7 == 0x00) val = opA + opB;
+        else if (funct7 == 0x20) val = opA - opB;
+        else if (funct7 == 0x01) // mul
         {
-            int64_t mulres = int64_t(int32_t(A.read())) * int64_t(int32_t(B.read()));
-            val = int32_t(mulres >> 32);
+          int64_t prod = int64_t(opA) * int64_t(opB);
+          val = int32_t(prod);  // low 32 bits
         }
         break;
-    case 0x2:
-        if (funct7 == 0x00) val = int32_t(A.read()) < int32_t(B.read());
-        break;
-    case 0x3:
-        if (funct7 == 0x00) val = uint32_t(A.read()) < uint32_t(B.read());
-        break;
-    case 0x4:
-        if (funct7 == 0x00) val = A.read() ^ B.read();
+
+      // sll, mulh (signed×signed → upper 32 bits)
+      case 0x1:
+        if      (funct7 == 0x00)
+          val = opA << (opB & 0x1F);
         else if (funct7 == 0x01)
         {
-            if (B.read() == 0) val = -1;
-            else val = int32_t(A.read()) / int32_t(B.read());
+          int64_t prod = int64_t(opA) * int64_t(opB);
+          val = int32_t(prod >> 32);
         }
         break;
-    case 0x5:
-        if (funct7 == 0x00) val = uint32_t(A.read()) >> (B.read() & 0x1F);
-        else if (funct7 == 0x20) val = int32_t(A.read()) >> (B.read() & 0x1F);
-        break;
-    case 0x6:
-        if (funct7 == 0x00) val = A.read() | B.read();
+
+      // slt, mulhsu (signed×unsigned → upper 32 bits)
+      case 0x2:
+        if      (funct7 == 0x00)
+          val = (opA < opB);
         else if (funct7 == 0x01)
         {
-            if (B.read() == 0) val = A.read();
-            else val = int32_t(A.read()) % int32_t(B.read());
+          // sign-extend opA, zero-extend opB, full 64-bit product
+          uint64_t a64 = uint64_t(int64_t(opA));
+          uint64_t b64 = uint64_t(uint32_t(opB));
+          uint64_t prod = a64 * b64;
+          val = int32_t(prod >> 32);
         }
         break;
-    case 0x7:
-        if (funct7 == 0x00) val = A.read() & B.read();
+
+      // sltu, mulhu (unsigned×unsigned → upper 32 bits)
+      case 0x3:
+        if      (funct7 == 0x00)
+          val = (uint32_t(opA) < uint32_t(opB));
+        else if (funct7 == 0x01)
+        {
+          uint64_t prod = uint64_t(uint32_t(opA)) * uint64_t(uint32_t(opB));
+          val = int32_t(prod >> 32);
+        }
+        break;
+
+      // xor, div
+      case 0x4:
+        if      (funct7 == 0x00)
+          val = opA ^ opB;
+        else if (funct7 == 0x01)
+        {
+          if      (opB == 0)                       val = -1;
+          else if (opA == INT32_MIN && opB == -1)  val = opA;  // overflow case
+          else                                     val = opA / opB;
+        }
+        break;
+
+      // srl, sra, divu
+      case 0x5:
+        if      (funct7 == 0x00)
+          val = int32_t(uint32_t(opA) >> (opB & 0x1F));
+        else if (funct7 == 0x20)
+          val = opA >> (opB & 0x1F);
+        else if (funct7 == 0x01)
+        {
+          uint32_t uA = uint32_t(opA);
+          uint32_t uB = uint32_t(opB);
+          val = int32_t(uB == 0 ? UINT32_MAX : uA / uB);
+        }
+        break;
+
+      // or, rem
+      case 0x6:
+        if      (funct7 == 0x00)
+          val = opA | opB;
+        else if (funct7 == 0x01)
+        {
+          if      (opB == 0)                      val = opA;
+          else if (opA == INT32_MIN && opB == -1) val = 0;
+          else                                    val = opA % opB;
+        }
+        break;
+
+      // and, remu
+      case 0x7:
+        if      (funct7 == 0x00)
+          val = opA & opB;
+        else if (funct7 == 0x01)
+        {
+          uint32_t uA = uint32_t(opA);
+          uint32_t uB = uint32_t(opB);
+          val = int32_t(uB == 0 ? uA : (uA % uB));
+        }
         break;
     }
+
     ALUOut.write(val);
     print_state();
-    // Cycle 6: Write result into rd (if rd != 0)
+
+    // Cycle 6: Write-back
     clk++;
     if (rd != 0)
         regfile[rd].write(ALUOut.read());
@@ -279,30 +338,86 @@ void Simulator::R_type(uint32_t instr)
 
 void Simulator::I_type(uint32_t instr, uint32_t opcode)
 {
-    int rd = (instr >> 7) & 0x1F;
+    int rd     = (instr >> 7)  & 0x1F;
     int funct3 = (instr >> 12) & 0x7;
-    int rs1 = (instr >> 15) & 0x1F;
+    int rs1    = (instr >> 15) & 0x1F;
+    // sign-extend 12-bit imm
     int32_t imm = int32_t(instr) >> 20;
 
     switch (opcode)
     {
-    case 0x13: // addi (I-type arithmetic)
+      // --------------------------------------------------
+      // I-type arithmetic & shifts (0x13)
+      // funct3: 0=addi,1=slli,4=xori,6=ori,7=andi,5=srli/srai…
+      // --------------------------------------------------
+      case 0x13:
+      {
+        // 1) fetch A and immediate
         clk++;
         A.write(regfile[rs1].read());
         B.write(imm);
         print_state();
 
+        // 2) ALU operation depends on funct3
         clk++;
-        ALUOut.write(A.read() + B.read());
+        {
+          int32_t a = A.read();
+          int32_t b = B.read();
+          uint32_t ua = uint32_t(a);
+          int32_t result;
+
+          switch (funct3)
+          {
+            case 0x0: // addi
+              result = a + b;
+              break;
+
+            case 0x1: // slli (only low 5 bits of imm)
+            {
+              int sh = b & 0x1F;
+              result = a << sh;
+              break;
+            }
+
+            case 0x5: // srli (imm[10]==0) – logical
+            {
+              int sh = b & 0x1F;
+              result = int32_t(ua >> sh);
+              break;
+            }
+
+            case 0x6: // ori
+              result = a | b;
+              break;
+
+            case 0x7: // andi
+              result = a & b;
+              break;
+
+            default:
+              result = 0;
+              break;
+          }
+
+          ALUOut.write(result);
+        }
         print_state();
 
+        // 3) write-back
         clk++;
         if (rd != 0)
-            regfile[rd].write(ALUOut.read());
+          regfile[rd].write(ALUOut.read());
         print_state();
         break;
+      }
 
-    case 0x03: // Loads: lh, lw
+      // --------------------------------------------------
+      // Loads: lb, lh, lw, lbu, lhu  (0x03)
+      // funct3: 0=lb,1=lh,2=lw,4=lbu,5=lhu
+      // --------------------------------------------------
+      case 0x03:
+      {
+        // 1) compute address
         clk++;
         A.write(regfile[rs1].read());
         B.write(imm);
@@ -312,37 +427,58 @@ void Simulator::I_type(uint32_t instr, uint32_t opcode)
         ALUOut.write(A.read() + B.read());
         print_state();
 
+        // 2) memory fetch
         clk++;
         MAR.write(ALUOut.read());
         print_state();
 
         clk++;
         {
-            uint32_t addrw = (MAR.read() & ~0x3) / 4;
-            uint32_t dataw = (addrw < MEM_SIZE) ? mem[addrw] : 0;
-            uint32_t addrh = (MAR.read() & ~0x1) / 4;
-            uint32_t datah = (addrh < MEM_SIZE) ? mem[addrh] : 0;
-            int offseth = (MAR.read() & 0x2) ? 16 : 0;
-            int16_t valh = (datah >> offseth) & 0xFFFF;
-            switch (funct3)
-            {
+          uint32_t addr = MAR.read();
+          // word-aligned index
+          uint32_t idxW = (addr & ~0x3) / 4;
+          uint32_t dataW = (idxW < MEM_SIZE) ? mem[idxW] : 0;
+          // half-word index
+          uint32_t idxH = (addr & ~0x1) / 4;
+          uint32_t dataH = (idxH < MEM_SIZE) ? mem[idxH] : 0;
+          int     offH  = (addr & 0x2) ? 16 : 0;
+          int16_t valH  = (dataH >> offH) & 0xFFFF;
+          int8_t  valB  = (dataW >> ((addr & 0x3) * 8)) & 0xFF;
+
+          int32_t loaded;
+          switch (funct3)
+          {
+            case 0x0: // lb
+              loaded = int32_t(valB);      // sign-extend byte
+              break;
             case 0x1: // lh
-                MDR.write(int32_t(valh));
-                break;
+              loaded = int32_t(valH);      // sign-extend half
+              break;
             case 0x2: // lw
-                MDR.write(int32_t(dataw));
-                break;
-            }
+              loaded = int32_t(dataW);
+              break;
+            case 0x4: // lbu
+              loaded = uint32_t(valB) & 0xFF;    // zero-extend byte
+              break;
+            case 0x5: // lhu
+              loaded = uint32_t(valH) & 0xFFFF;  // zero-extend half
+              break;
+            default:
+              loaded = 0;
+          }
+          MDR.write(loaded);
         }
         print_state();
 
+        // 3) write-back
         clk++;
         if (rd != 0)
-            regfile[rd].write(MDR.read());
+          regfile[rd].write(MDR.read());
         print_state();
         break;
+      }
 
-    case 0x67: // jalr
+      case 0x67:
         clk++;
         A.write(regfile[rs1].read());
         B.write(imm);
@@ -354,12 +490,12 @@ void Simulator::I_type(uint32_t instr, uint32_t opcode)
 
         clk++;
         if (rd != 0)
-            regfile[rd].write(PC.read());
-
+          regfile[rd].write(PC.read());
         PC.write(ALUOut.read() & ~1u);
         print_state();
         break;
     }
+
     reset_clk();
 }
 
@@ -370,6 +506,7 @@ void Simulator::S_type(uint32_t instr)
     int rs2 = (instr >> 20) & 0x1F;
     int32_t imm = ((instr >> 25) << 5) | ((instr >> 7) & 0x1F);
     imm = (imm << 20) >> 20;  // Sign-extend immediate
+
     // Cycle 4: Read base register into A
     clk++;
     A.write(regfile[rs1].read());
@@ -390,19 +527,29 @@ void Simulator::S_type(uint32_t instr)
     clk++;
     MDR.write(regfile[rs2].read());
     print_state();
-    // Cycle 8: Write data from MDR into memory (sw or sh)
+
+    // Cycle 8: Write data from MDR into memory (sb, sh, sw)
     clk++;
     {
-        uint32_t addrWord = (MAR.read() & ~0x3u) / 4;
+        uint32_t addr = MAR.read();
+        uint32_t addrWord = (addr & ~0x3u) / 4;
         if (addrWord < MEM_SIZE)
         {
             uint32_t curr = mem[addrWord];
             switch (funct3)
             {
+            case 0x0:  // sb: store byte
+            {
+                uint8_t byte = uint8_t(MDR.read() & 0xFF);
+                int shift = (addr & 0x3) * 8;
+                curr = (curr & ~(0xFFu << shift)) | (uint32_t(byte) << shift);
+                mem[addrWord] = curr;
+                break;
+            }
             case 0x1:  // sh: store halfword
             {
                 uint16_t half = uint16_t(MDR.read() & 0xFFFF);
-                if (MAR.read() & 0x2)
+                if (addr & 0x2)
                 { // upper half
                     curr = (curr & 0x0000FFFF) | (uint32_t(half) << 16);
                 }
