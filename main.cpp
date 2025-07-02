@@ -96,7 +96,40 @@ int main() {
     // ─────[ Pass 2: Instruction Encoding ]─────
     ofstream outfile("output.txt");
     address = 0x1000;
-    for (const string& instr : instructions) {
+    ifstream infile2("input.asm");
+    string instr;
+    string working_string;
+    while (getline(infile2, instr)) {
+        working_string = trim(instr);
+        if (working_string.empty() || working_string[0] == '#') 
+            continue;
+        if (working_string.find(':') != string::npos) {
+            working_string = trim(working_string.substr(working_string.find(':') + 1));
+            if (working_string.empty()) 
+                continue;
+        }
+
+        if (working_string[0] == '.') {
+            vector<string> tokens = split(working_string, ' ');
+            string directive = tokens[0];
+            if (directive == ".org") {
+                address = stoul(tokens[1], nullptr, 0);
+            }
+            else if (directive == ".word" || directive == ".half" || directive == ".byte") {
+                if (directive == ".word") 
+                    address += 4;
+                else if (directive == ".half") 
+                    address += 2;
+                else if (directive == ".byte") 
+                    address += 1;
+            }
+            else if (directive == ".align") {
+                int n = stoi(tokens[1]);
+                uint32_t alignTo = 1 << n;
+                address = (address + alignTo - 1) & ~(alignTo - 1);
+            }
+            continue;
+        }
         string inputline = remove_commas(trim(instr));
         vector<string> tokens = split(inputline, ' ');
         if (tokens[0] == "li") {
@@ -128,6 +161,7 @@ int main() {
         simulator.writeWord(code, address);
         address += 4;
     }
+    infile2.close();
     outfile.close();
 
     // ─────[ Pass 3: Simulation ]─────
