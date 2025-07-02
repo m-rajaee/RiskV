@@ -1,6 +1,6 @@
 ﻿#include "simulator.h"
-Register::Register() : value(0) {}
 
+Register::Register() : value(0) {}
 void Register::write(uint32_t _v)
 {
     value = _v;
@@ -298,7 +298,7 @@ void Simulator::I_type(uint32_t instr, uint32_t opcode)
         clk++;
         if (rd != 0)
             regfile[rd].write(PC.read());
-    
+
         PC.write(ALUOut.read() & ~1u);
         print_state();
         break;
@@ -413,7 +413,7 @@ void Simulator::U_type(uint32_t instr, uint32_t opcode)
 
 void Simulator::B_type(uint32_t instr)
 {
-    
+
     int rs1 = (instr >> 15) & 0x1F;
     int rs2 = (instr >> 20) & 0x1F;
     int funct3 = (instr >> 12) & 0x7;
@@ -495,7 +495,7 @@ void Simulator::J_type(uint32_t instr)
 
     // Cycle 4: A ← PC  (PC is already PC_old + 4 after fetch)
     clk++;
-    if(rd != 0)
+    if (rd != 0)
         regfile[rd].write(PC.read());
     print_state();
 
@@ -508,11 +508,11 @@ void Simulator::J_type(uint32_t instr)
 }
 
 void Simulator::writeWord(uint32_t input, uint32_t address) {
-        //if (address % 4 != 0) {
-        //    cerr << "Error: Unaligned word write to address 0x" << hex << address << endl;
-        //    return;
-        //}
-        mem[address / 4] = input;
+    //if (address % 4 != 0) {
+    //    cerr << "Error: Unaligned word write to address 0x" << hex << address << endl;
+    //    return;
+    //}
+    mem[address / 4] = input;
 }
 
 void Simulator::writeHalf(uint16_t input, uint32_t address) {
@@ -542,4 +542,3 @@ void Simulator::writeByte(uint8_t input, uint32_t address) {
     oldWord |= (input << (byteOffset * 8));        // set byte to new value
     mem[wordAddress] = oldWord;
 }
-

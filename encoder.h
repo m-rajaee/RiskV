@@ -15,7 +15,7 @@ public:
     unordered_map<string, uint32_t> table;
     SymbolTable() = default;
     void addLabel(const string& label, uint32_t address);
-    bool hasLabel(const string& label);
+    bool hasLabel(const string& label) const;
     uint32_t getAddress(const string& label) const;
 };
 

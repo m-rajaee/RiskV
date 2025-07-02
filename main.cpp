@@ -1,6 +1,8 @@
 ﻿#include "encoder.h"
 #include "simulator.h"
-#include <algorithm>
+#include <iomanip>
+using namespace std;
+
 // === Utility Functions ===
 string trim(const string& s) {
     size_t start = s.find_first_not_of(" \t\n\r");
@@ -9,9 +11,7 @@ string trim(const string& s) {
 }
 string remove_commas(const string& s) {
     string result;
-    for (char c : s) {
-        if (c != ',') result += c;
-    }
+    for (char c : s) if (c != ',') result += c;
     return result;
 }
 vector<string> split(const string& s, char delimiter) {
@@ -23,15 +23,16 @@ vector<string> split(const string& s, char delimiter) {
     }
     return tokens;
 }
+
 unordered_map<string, uint32_t> regMap = {
-    {"x0", 0}, {"x1", 1}, {"x2", 2}, {"x3", 3}, {"x4", 4},
-    {"x5", 5}, {"x6", 6}, {"x7", 7}, {"x8", 8}, {"x9", 9},
-    {"x10", 10}, {"x11", 11}, {"x12", 12}, {"x13", 13}, {"x14", 14},
-    {"x15", 15}, {"x16", 16}, {"x17", 17}, {"x18", 18}, {"x19", 19},
-    {"x20", 20}, {"x21", 21}, {"x22", 22}, {"x23", 23}, {"x24", 24},
-    {"x25", 25}, {"x26", 26}, {"x27", 27}, {"x28", 28}, {"x29", 29},
+    {"x0", 0}, {"x1", 1}, {"x2", 2}, {"x3", 3}, {"x4", 4}, {"x5", 5},
+    {"x6", 6}, {"x7", 7}, {"x8", 8}, {"x9", 9}, {"x10", 10}, {"x11", 11},
+    {"x12", 12}, {"x13", 13}, {"x14", 14}, {"x15", 15}, {"x16", 16}, {"x17", 17},
+    {"x18", 18}, {"x19", 19}, {"x20", 20}, {"x21", 21}, {"x22", 22}, {"x23", 23},
+    {"x24", 24}, {"x25", 25}, {"x26", 26}, {"x27", 27}, {"x28", 28}, {"x29", 29},
     {"x30", 30}, {"x31", 31}
 };
+
 int main() {
     SymbolTable symbolTable;
     vector<string> instructions;
@@ -39,37 +40,36 @@ int main() {
     ifstream infile("input.asm");
     string line;
     Simulator simulator;
-    // ───────────────[ PAS 1: PARSER ]───────────────
+
+    // ─────[ Pass 1: Label Parsing and Directives ]─────
     while (getline(infile, line)) {
         line = trim(line);
-        if (line.empty() || line[0] == '#') 
-            continue;
+        if (line.empty() || line[0] == '#') continue;
+
         if (line.find(':') != string::npos) {
             string label = trim(line.substr(0, line.find(':')));
             symbolTable.addLabel(label, address);
             line = trim(line.substr(line.find(':') + 1));
-            if (line.empty()) 
-                continue;
+            if (line.empty()) continue;
         }
-        else if (line[0] == '.') {         // Directive instructions
+
+        if (line[0] == '.') {
             vector<string> tokens = split(line, ' ');
             string directive = tokens[0];
-            if (directive == ".org") { // set address of program to given value
+
+            if (directive == ".org") {
                 address = stoul(tokens[1], nullptr, 0);
             }
-            else if (directive == ".word") {  //put a 32 bit value to memory
-                uint32_t input = stoul(tokens[1], nullptr, 0);
-                simulator.writeWord(input,address);
+            else if (directive == ".word") {
+                simulator.writeWord(stoul(tokens[1], nullptr, 0), address);
                 address += 4;
             }
-            else if (directive == ".half") {  //put a 16 bit value to memory
-                uint16_t input = stoul(tokens[1], nullptr, 0);
-                simulator.writeHalf(input, address);
+            else if (directive == ".half") {
+                simulator.writeHalf((uint16_t)stoul(tokens[1], nullptr, 0), address);
                 address += 2;
             }
-            else if (directive == ".byte") {  //put a 8 bit value to memory
-                uint8_t input = stoul(tokens[1], nullptr, 0);
-                simulator.writeByte(input, address);
+            else if (directive == ".byte") {
+                simulator.writeByte((uint8_t)stoul(tokens[1], nullptr, 0), address);
                 address += 1;
             }
             else if (directive == ".align") {
@@ -79,22 +79,26 @@ int main() {
             }
             continue;
         }
+
         instructions.push_back(line);
         address += 4;
     }
-    // ───────────────[ PAS 2: ENCODER ]───────────────
-    ofstream outfile("output.txt", ios::binary);
+
+    // ─────[ Pass 2: Instruction Encoding ]─────
+    ofstream outfile("output.txt");
     address = 0x1000;
     for (const string& instr : instructions) {
-        string inputline = trim(instr);
-        inputline = remove_commas(inputline);
+        string inputline = remove_commas(trim(instr));
         vector<string> tokens = split(inputline, ' ');
         uint32_t code = encodeInstruction(tokens, address, symbolTable, regMap);
-        outfile.write(reinterpret_cast<char*>(&code), sizeof(code));
+        cout << hex << code << endl;
+        outfile << hex << setw(8) << setfill('0') << code << endl;
+        simulator.writeWord(code, address);
         address += 4;
     }
     outfile.close();
-    // ───────────────[ PAS 3: SIMULATOR ]───────────────
+
+    // ─────[ Pass 3: Simulation ]─────
     simulator.load_program("output.txt");
     simulator.start();
 }
