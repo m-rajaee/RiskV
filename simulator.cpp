@@ -119,6 +119,13 @@ void Simulator::print_state()
     cout << "\033[1;35m ALUOut :\033[0m \033[0;36m" << setw(8) << ALUOut.read() << "\033[0m\n";
 
     cout << "\033[1;36m================================================\033[0m\n\n";
+
+
+    if(clk_type == 'A')
+        pause();
+    else
+        wait_for_user();
+
 }
 
 void Simulator::start()
@@ -515,14 +522,12 @@ void Simulator::B_type(uint32_t instr)
     // Note: PC currently points to next instruction (PC = old PC + 4 from fetch).
     // Therefore, branch target = (PC - 4) + immediate.
     int32_t branchTarget = (PC.read() - 4) + imm;
-    ALUOut.write(branchTarget); // For debug tracking
-    print_state();
+    
 
-    // Cycle 6: If branch condition met, update PC with branch target.
-    clk++;
+    // Cycle 5: If branch condition met, update PC with branch target.
     if (takeBranch)
     {
-        PC.write(ALUOut.read());
+        PC.write(branchTarget);
     }
     print_state();
 
