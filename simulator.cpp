@@ -48,52 +48,6 @@ void Simulator::load_program(const string& path)
     }
 }
 
-void Simulator::choose_clk_type()
-{
-    std::string input;
-    while (true)
-    {
-        cout << "Choose clk type: A(Auto), M(Manual): ";
-        getline(cin, input);
-
-        if (input.size() == 1) 
-        {
-            clk_type = toupper(static_cast<unsigned char>(input[0]));
-            if (clk_type == 'A' || clk_type == 'M') 
-                break;
-        }
-        cout << "Invalid input. Please enter 'A' or 'M'.";
-    }
-
-    if(clk_type == 'A')
-    {
-        cout << "Choose the speed (Hz) (0 for max): ";
-        cin >> clk_speed;
-        if(clk_speed != 0)
-            delay = 1'000'000.0 / clk_speed;
-    }
-}
-
-void Simulator::pause()
-{
-    if(clk_speed == 0)
-        {
-            return;
-        }
-        else
-        {
-            std::this_thread::sleep_for(std::chrono::microseconds(static_cast<int>(delay)));
-        }
-}
-
-void Simulator::wait_for_user()
-{
-    char c;
-    cout << "Press Enter to continue...\n";
-    getch();
-}
-
-
 void Simulator::print_state()
 {
     cout << "clock: " << clk << endl;
@@ -116,20 +70,10 @@ void Simulator::print_state()
         << "  B: " << setw(8) << B.read()
         << "  ALUOut: " << setw(8) << ALUOut.read()
         << dec << endl;
-
-    if(clk_type == 'A')
-    {
-        pause();
-    }
-    else
-    {
-        wait_for_user();
-    }
 }
 
 void Simulator::start()
 {
-    choose_clk_type();
     clk = 0;
     bool halted = false;
     while (!halted)

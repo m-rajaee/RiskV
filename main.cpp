@@ -22,7 +22,15 @@ vector<string> split(const string& s, char delimiter) {
     }
     return tokens;
 }
-
+pair<string, string> parseMemoryOperand(const string& operand) {
+    size_t open = operand.find('(');
+    size_t close = operand.find(')');
+    if (open == string::npos || close == string::npos || close <= open)
+        throw runtime_error("Invalid memory operand: " + operand);
+    string imm = operand.substr(0, open);
+    string reg = operand.substr(open + 1, close - open - 1);
+    return { trim(imm), trim(reg) };
+}
 unordered_map<string, uint32_t> regMap = {
     {"x0", 0}, {"x1", 1}, {"x2", 2}, {"x3", 3}, {"x4", 4}, {"x5", 5},
     {"x6", 6}, {"x7", 7}, {"x8", 8}, {"x9", 9}, {"x10", 10}, {"x11", 11},
@@ -89,6 +97,15 @@ int main() {
     for (const string& instr : instructions) {
         string inputline = remove_commas(trim(instr));
         vector<string> tokens = split(inputline, ' ');
+        if (tokens.size() == 3 && tokens[2].find('(') != string::npos) {
+            pair<string, string> temp = parseMemoryOperand(tokens[2]);
+            tokens.pop_back();
+            tokens.push_back(temp.second);
+            tokens.push_back(temp.first);
+        }
+        for (string t : tokens)
+            cout << t << ' ';
+        cout << endl;
         uint32_t code = encodeInstruction(tokens, address, symbolTable, regMap);
         outfile << hex << setw(8) << setfill('0') << code << endl;
         simulator.writeWord(code, address);

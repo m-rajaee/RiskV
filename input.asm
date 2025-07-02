@@ -1,6 +1,6 @@
-   addi x1, x0, 10   
-    sub x2, x1, 5  
-   mul x3, x2, x2   
-   div x4, x3, 2    
-     add x5, x4, x1
-	 
+beq x7, x8, mylabel
+ 
+ mylabel:
+		addi x1, x2, 23
+		lw x5, 4(x10)
+		sw x6, 2(x1)
