@@ -12,7 +12,7 @@ using namespace std;
 
 const uint32_t MEM_SIZE = 1024 * 64;
 const uint32_t REG_COUNT = 32;
-const uint32_t PROGRAM_START = 0x100;
+const uint32_t PROGRAM_START = 0x1000;
 
 static const char* reg_names[32] = {
        "zero","ra","sp","gp","tp","t0","t1","t2",
