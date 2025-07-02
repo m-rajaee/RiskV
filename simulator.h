@@ -8,14 +8,11 @@
 #include <fstream>
 #include <stdint.h>
 #include <stdexcept>
-#include <conio.h>
-#include <chrono>
-#include <thread>
 using namespace std;
 
 const uint32_t MEM_SIZE = 1024 * 64;
 const uint32_t REG_COUNT = 32;
-const uint32_t PROGRAM_START = 0x1000;
+const uint32_t PROGRAM_START = 0x100;
 
 static const char* reg_names[32] = {
        "zero","ra","sp","gp","tp","t0","t1","t2",
@@ -38,23 +35,14 @@ class Simulator
     uint32_t mem[MEM_SIZE] = { 0 };
     array<Register, REG_COUNT> regfile;
     Register PC, MAR, MDR, IR, A, B, ALUOut;
-
     int clk;
-    char clk_type;
-    int clk_speed;
-    double delay;
     void reset_clk();
-    
     void R_type(uint32_t instr);
     void S_type(uint32_t instr);
     void B_type(uint32_t instr);
     void J_type(uint32_t instr);
     void I_type(uint32_t instr, uint32_t opcode);
     void U_type(uint32_t instr, uint32_t opcode);
-
-    void choose_clk_type();
-    void pause();
-    void wait_for_user();
 public:
     Simulator();
     void load_program(const string& path);
