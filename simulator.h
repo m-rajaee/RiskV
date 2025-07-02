@@ -27,7 +27,6 @@ static const char* reg_names[32] = {
 class Register
 {
     uint32_t value;
-
 public:
     Register();
     uint32_t read() const;
