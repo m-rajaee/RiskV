@@ -53,7 +53,7 @@ void Simulator::choose_clk_type()
     std::string input;
     while (true)
     {
-        cout << "Choose clk type: A(Auto), M(Manual): ";
+        cout << "\033[1;91mChoose clk type: A(Auto), M(Manual): \033[0m";
         getline(cin, input);
 
         if (input.size() == 1)
@@ -62,12 +62,12 @@ void Simulator::choose_clk_type()
             if (clk_type == 'A' || clk_type == 'M')
                 break;
         }
-        cout << "Invalid input. Please enter 'A' or 'M'.";
+        cout << "\033[1;91mInvalid input. Please enter 'A' or 'M'.\033[0m";
     }
 
     if (clk_type == 'A')
     {
-        cout << "Choose the speed (Hz) (0 for max): ";
+        cout << "\033[1;91mChoose the speed (Hz) (0 for max): \033[0m";
         cin >> clk_speed;
         if (clk_speed != 0)
             delay = 1'000'000.0 / clk_speed;
@@ -95,31 +95,30 @@ void Simulator::wait_for_user()
 
 void Simulator::print_state()
 {
-    cout << "clock: " << clk << endl;
+    cout << "\033[1;36m================ CLOCK CYCLE: " << clk << " =================\033[0m\n";
+
     for (int i = 0; i < 32; i += 4)
     {
-        cout << hex << setw(3) << setfill(' ') << reg_names[i] << ": "
-            << setw(8) << setfill('0') << regfile[i].read() << "  "
-            << setw(3) << reg_names[i + 1] << ": "
-            << setw(8) << regfile[i + 1].read() << "  "
-            << setw(3) << reg_names[i + 2] << ": "
-            << setw(8) << regfile[i + 2].read() << "  "
-            << setw(3) << reg_names[i + 3] << ": "
-            << setw(8) << regfile[i + 3].read() << endl;
+        cout << "\033[1;33m" << setw(3) << reg_names[i] << ":\033[0m "
+            << "\033[0;32m" << setw(8) << setfill('0') << hex << regfile[i].read() << "\033[0m  "
+            << "\033[1;33m" << setw(3) << reg_names[i + 1] << ":\033[0m "
+            << "\033[0;32m" << setw(8) << regfile[i + 1].read() << "\033[0m  "
+            << "\033[1;33m" << setw(3) << reg_names[i + 2] << ":\033[0m "
+            << "\033[0;32m" << setw(8) << regfile[i + 2].read() << "\033[0m  "
+            << "\033[1;33m" << setw(3) << reg_names[i + 3] << ":\033[0m "
+            << "\033[0;32m" << setw(8) << regfile[i + 3].read() << "\033[0m\n";
     }
-    cout << " PC: " << setw(8) << PC.read()
-        << "  MAR: " << setw(8) << MAR.read()
-        << "  MDR: " << setw(8) << MDR.read()
-        << "  IR: " << setw(8) << IR.read()
-        << "  A: " << setw(8) << A.read()
-        << "  B: " << setw(8) << B.read()
-        << "  ALUOut: " << setw(8) << ALUOut.read()
-        << dec << endl;
 
-    if (clk_type == 'A')
-        pause();
-    else
-        wait_for_user();
+    cout << "\n\033[1;36m[Processor State Registers]\033[0m\n";
+    cout << "\033[1;35m PC     :\033[0m \033[0;36m" << setw(8) << PC.read()
+        << "\033[0m  \033[1;35mMAR    :\033[0m \033[0;36m" << setw(8) << MAR.read()
+        << "\033[0m  \033[1;35mMDR    :\033[0m \033[0;36m" << setw(8) << MDR.read() << "\n";
+    cout << "\033[1;35m IR     :\033[0m \033[0;36m" << setw(8) << IR.read()
+        << "\033[0m  \033[1;35mA      :\033[0m \033[0;36m" << setw(8) << A.read()
+        << "\033[0m  \033[1;35mB      :\033[0m \033[0;36m" << setw(8) << B.read() << "\n";
+    cout << "\033[1;35m ALUOut :\033[0m \033[0;36m" << setw(8) << ALUOut.read() << "\033[0m\n";
+
+    cout << "\033[1;36m================================================\033[0m\n\n";
 }
 
 void Simulator::start()
