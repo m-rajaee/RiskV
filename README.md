@@ -1,6 +1,8 @@
 
 # RISC-V Architecture Simulator and Assembler
 
+**Final Project Of Computer Architecture Class at Isfahan University Of Technology**
+
 ## توسعه دهندگان
 
 علیرضا مختاری  -  سید محمد امین رجائی  - محمد جواد عباسی
